@@ -24,6 +24,9 @@ fit <- rpart(margin ~ ., data = polls_2008)
 plot(fit, margin = 0.1)
 text(fit, cex = 0.75)
 ```
+This decision tree provides insight into how the `margin` (difference in polling between two candidates) varies over time in 2008. The root node splits at **day ~39.5**, partitioning the data into early polls (roughly the first month and a half) versus the remaining days. This indicates that the model sees a key difference in the polling margin before and after day 39.5.
+
+From there, additional splits occur around **day ~49.5**, **day ~86.5**, and **day ~117.5**, reflecting further temporal nuances. Each of these split points suggests that the model detects distinct polling behavior or shifts in voter sentiment within those specific timeframes. By dividing the days at these intervals, the tree effectively captures how the margin evolves as the election season progresses.
 
 ### 2. Model Fit vs Actual Data (polls_2008 dataset)
 <img src="images/predicted_vs_actual_poll_2008.png" width="600" alt="Predicted vs Actual for Polls 2008">
@@ -36,6 +39,15 @@ polls_2008 %>%
   geom_point(aes(day, margin)) +
   geom_step(aes(day, y_hat), col = "red")
 ```
+This plot compares the **actual polling margins** (black points) against the **predicted margins** from the decision tree model (red step line) over time.
+
+The black points represent the original data, showing considerable variation (or noise) in polling margins on different days. The red step function shows the decision tree’s predictions, which remain constant within each region defined by the tree’s splits.
+
+The step-like behavior reflects the nature of decision trees:  
+- Rather than modeling smooth, continuous changes, decision trees create *piecewise constant approximations* of the data.
+- Each horizontal segment of the red line corresponds to a "leaf node" in the tree, predicting a single value for all days falling within that range.
+
+While the model captures broad shifts in the polling margin over time, it does not attempt to fit the noise or minor fluctuations in the data. This characteristic makes decision trees useful for uncovering major patterns while avoiding overfitting to random variation.
 
 ### 3. Cross-Validation Plot (Decision Tree on mnist_27 dataset)
 <img src="images/cv_plot_decision_tree_mnist27.png" width="600" alt="Cross Validation for Decision Tree on mnist_27">
@@ -49,6 +61,21 @@ train_rpart <- train(y ~ .,
 
 plot(train_rpart)
 ```
+This plot shows how the **complexity parameter (cp)** affects the **accuracy** of a decision tree trained on the `mnist_27` dataset, using cross-validation.
+
+- The **x-axis** represents different values of the complexity parameter `cp`, which controls how much the tree is penalized for being too complex (i.e., having too many splits).
+- The **y-axis** shows the cross-validated accuracy achieved at each `cp` value.
+
+At very low `cp` values (close to 0), the tree is allowed to grow large and complex, capturing fine-grained patterns in the training data. Initially, this leads to **high accuracy**.
+
+However, as `cp` increases:
+- The model becomes simpler, pruning more aggressively.
+- Simpler trees generally perform worse on the training set, which is reflected by the **declining accuracy** after the optimal point.
+
+The plot shows that accuracy peaks around a `cp` value slightly above 0, and then steadily declines as `cp` increases.  
+This behavior is typical: while a little bit of pruning can prevent overfitting, **too much pruning removes important decision boundaries**, leading to underfitting and lower accuracy.
+
+Selecting the `cp` value corresponding to the highest point on this curve ensures the best balance between model complexity and generalization to new data.
 
 ### 4. Final Decision Tree Structure (mnist_27 dataset)
 <img src="images/final_decision_tree_mnist27.png" width="600" alt="Final Decision Tree for mnist_27">
@@ -63,3 +90,16 @@ rpart_accuracy <- confusionMatrix(
 plot(train_rpart$finalModel, margin = 0.1)
 text(train_rpart$finalModel)
 ```
+This plot shows the structure of the **final decision tree** trained on the `mnist_27` dataset after tuning the complexity parameter (`cp`) through cross-validation.
+
+The tree uses only a few splits, reflecting the model’s simplicity after pruning:
+- The **first split** is on `x_1 < 0.2208`.  
+  This divides the feature space based on the value of the first input variable.
+- For observations where `x_1 < 0.2208`, a **second split** is made based on `x_2 >= 0.2138`.
+- A **third split** occurs when `x_1 < 0.08562`, providing finer discrimination within one of the branches.
+
+At each terminal node (leaf), the predicted class is shown:
+- **Class 2** or **Class 7** depending on the path through the tree.
+
+The simplicity of this tree suggests that only a few simple rules are needed to separate the two classes (`2` and `7`) effectively on this reduced mnist_27 dataset.  
+This model balances **interpretability** and **predictive power**, avoiding the complexity and potential overfitting of deeper trees.
